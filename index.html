@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yc Weather</title>
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Harici CSS Dosyası Bağlantısı -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="text-white min-h-screen relative flex flex-col items-center pb-10">
+
+    <!-- Dinamik Arka Plan Katmanı -->
+    <div id="bg-layer" class="fixed inset-0 z-[-1] bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <!-- Atmosferik Glow Efektleri -->
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+            <div id="glow-1" class="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-blue-500/20 rounded-full blur-[120px] animate-float"></div>
+            <div id="glow-2" class="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] bg-indigo-500/20 rounded-full blur-[120px] animate-float" style="animation-delay: 2s"></div>
+        </div>
+    </div>
+
+    <!-- Yükleme -->
+    <div id="loader" class="fixed inset-0 z-50 bg-[#0f172a] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="w-16 h-16 border-4 border-blue-500/30 border-t-blue-400 rounded-full animate-spin"></div>
+        <p class="mt-4 text-xs tracking-widest text-blue-300 animate-pulse">HAZIRLANIYOR...</p>
+    </div>
+
+    <!-- İçerik -->
+    <main id="app-content" class="w-full max-w-6xl p-4 md:p-8 opacity-0 transition-opacity duration-700">
+
+        <!-- Üst Kısım -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 animate-slide-up relative z-50">
+            <div>
+                <div class="flex items-center gap-2 text-blue-300 mb-1">
+                    <i class="ph-fill ph-map-pin"></i>
+                    <span id="location-country" class="text-xs font-bold tracking-widest uppercase">KONUM</span>
+                </div>
+                <h1 id="location-city" class="text-4xl md:text-5xl font-bold tracking-tight drop-shadow-xl">Yükleniyor...</h1>
+                <p id="current-date" class="text-white/50 text-sm font-medium mt-1">--</p>
+            </div>
+
+            <div class="flex items-center gap-3 w-full md:w-auto">
+                <!-- GPS Butonu -->
+                <button onclick="getLocationByIP()" class="glass-input p-3 rounded-xl hover:bg-white/20 transition active:scale-95" title="Konumuma Git">
+                    <i class="ph-fill ph-crosshair text-xl"></i>
+                </button>
+
+                <div class="relative w-full md:w-80 group">
+                    <i class="ph ph-magnifying-glass absolute left-4 top-3.5 text-white/50 text-lg"></i>
+                    <input type="text" id="search-input" 
+                        class="glass-input w-full py-3 pl-11 pr-4 rounded-xl text-sm placeholder-white/40" 
+                        placeholder="Şehir ara..." autocomplete="off">
+                    
+                    <div id="search-results" class="absolute top-full left-0 right-0 mt-2 glass-card bg-[#0f172a]/95 backdrop-blur-xl overflow-y-auto rounded-xl custom-scroll shadow-2xl border border-white/10"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Ana Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 relative z-10">
+
+            <!-- SOL Taraf (8 birim) -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <!-- Mevcut Durum Kartı -->
+                <div class="glass-card p-8 md:p-10 relative overflow-hidden min-h-[340px] flex flex-col justify-between animate-slide-up">
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md mb-4 border border-white/10">
+                                <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                                <span id="weather-desc" class="text-xs font-bold uppercase tracking-wider">--</span>
+                            </div>
+                            <div class="flex items-start">
+                                <span id="main-temp" class="text-[7rem] md:text-[9rem] font-bold leading-none tracking-tighter drop-shadow-2xl">--</span>
+                                <span class="text-5xl font-light text-white/60 mt-4">°</span>
+                            </div>
+                        </div>
+                        <!-- Dinamik İkon (Beyaz Bulutlar / Sarı Güneş) -->
+                        <i id="main-icon" class="ph-fill ph-sun text-[9rem] md:text-[12rem] drop-shadow-2xl animate-float opacity-90 transition-colors duration-500"></i>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10 mt-4">
+                        <div class="bg-white/5 rounded-xl p-3 backdrop-blur-sm border border-white/5">
+                            <p class="text-[10px] text-white/60 font-bold uppercase mb-1">Hissedilen</p>
+                            <p id="feels-like" class="text-xl font-bold">--°</p>
+                        </div>
+                        <div class="bg-white/5 rounded-xl p-3 backdrop-blur-sm border border-white/5">
+                            <p class="text-[10px] text-white/60 font-bold uppercase mb-1">Min / Max</p>
+                            <p id="min-max" class="text-xl font-bold">-- / --</p>
+                        </div>
+                        <div class="bg-white/5 rounded-xl p-3 backdrop-blur-sm border border-white/5">
+                            <p class="text-[10px] text-white/60 font-bold uppercase mb-1">Nem</p>
+                            <div class="flex items-center gap-1">
+                                <i class="ph-fill ph-drop text-blue-300"></i>
+                                <span id="humidity" class="text-xl font-bold">--%</span>
+                            </div>
+                        </div>
+                        <div class="bg-white/5 rounded-xl p-3 backdrop-blur-sm border border-white/5">
+                            <p class="text-[10px] text-white/60 font-bold uppercase mb-1">Rüzgar</p>
+                            <div class="flex items-center gap-2">
+                                <i id="wind-icon" class="ph-fill ph-navigation-arrow text-blue-300 transform transition-transform duration-700"></i>
+                                <span id="wind" class="text-xl font-bold">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GELİŞMİŞ 24 SAATLİK GRAFİK -->
+                <div class="glass-card p-6 animate-slide-up" style="animation-delay: 0.1s;">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-bold flex items-center gap-2">
+                            <i class="ph-fill ph-chart-line-up text-blue-400"></i>
+                            24 Saatlik Trend
+                        </h3>
+                        <div class="flex items-center gap-4 text-xs text-white/50">
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-white"></span> Sıcaklık</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-blue-400"></span> Yağış %</span>
+                        </div>
+                    </div>
+
+                    <!-- Scroll Container -->
+                    <div id="chart-scroll-container" class="overflow-x-auto hide-scroll cursor-grab active:cursor-grabbing relative w-full h-[220px] select-none">
+                        <div id="chart-wrapper" class="h-full relative">
+                            
+                            <!-- SVG Layer -->
+                            <svg id="hourly-chart" class="absolute top-0 left-0 h-[140px] overflow-visible z-10" preserveAspectRatio="none">
+                                <defs>
+                                    <linearGradient id="gradientArea" x1="0%" y1="0%" x2="0%" y2="100%">
+                                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25" />
+                                        <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+                                    </linearGradient>
+                                </defs>
+                                <!-- Yağış Barları Grubu -->
+                                <g id="rain-bars-group"></g>
+                                <!-- Grafik Yolları -->
+                                <path id="chart-area-path" class="chart-area" d="" />
+                                <path id="chart-line-path" class="chart-line" d="" />
+                            </svg>
+
+                            <!-- Labels Layer -->
+                            <div id="hourly-labels" class="absolute top-[150px] left-0 w-full flex h-[70px]">
+                                <!-- JS ile dolar -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SAĞ Taraf (4 birim) -->
+            <div class="lg:col-span-4 space-y-6">
+                
+                <!-- Detay Grid -->
+                <div class="grid grid-cols-2 gap-4 animate-slide-up" style="animation-delay: 0.2s;">
+                    <div class="glass-card p-4 flex flex-col items-center text-center justify-center aspect-[4/3] hover:bg-white/5 transition">
+                        <i class="ph-duotone ph-sun-dim text-3xl text-orange-300 mb-2"></i>
+                        <span class="text-[10px] text-white/60 font-bold uppercase">UV İndeks</span>
+                        <span id="uv-index" class="text-2xl font-bold mt-1">--</span>
+                    </div>
+                    <div class="glass-card p-4 flex flex-col items-center text-center justify-center aspect-[4/3] hover:bg-white/5 transition">
+                        <i class="ph-duotone ph-eye text-3xl text-blue-300 mb-2"></i>
+                        <span class="text-[10px] text-white/60 font-bold uppercase">Görüş</span>
+                        <span id="visibility" class="text-xl font-bold mt-1">--</span>
+                    </div>
+                    <div class="glass-card p-4 flex flex-col items-center text-center justify-center aspect-[4/3] hover:bg-white/5 transition">
+                        <i class="ph-duotone ph-gauge text-3xl text-purple-300 mb-2"></i>
+                        <span class="text-[10px] text-white/60 font-bold uppercase">Basınç</span>
+                        <span id="pressure" class="text-xl font-bold mt-1">--</span>
+                    </div>
+                    <div class="glass-card p-4 flex flex-col items-center text-center justify-center aspect-[4/3] hover:bg-white/5 transition">
+                        <i class="ph-duotone ph-sun-horizon text-3xl text-yellow-200 mb-2"></i>
+                        <span class="text-[10px] text-white/60 font-bold uppercase">Gün Doğumu</span>
+                        <span id="sunrise" class="text-xl font-bold mt-1">--:--</span>
+                    </div>
+                </div>
+
+                <!-- Haftalık Liste -->
+                <div class="glass-card p-6 min-h-[400px] animate-slide-up" style="animation-delay: 0.3s;">
+                    <div class="flex items-center gap-2 mb-5 opacity-90">
+                        <i class="ph-fill ph-calendar-blank text-blue-300"></i>
+                        <h3 class="font-bold text-lg">7 Günlük Tahmin</h3>
+                    </div>
+                    <div class="flex flex-col gap-2" id="daily-list">
+                        <!-- JS ile dolar -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <footer class="mt-12 text-center text-white/30 text-xs pb-6">
+            <p>© 2025 Yc Weather, Tüm Hakları Saklıdır.</p>
+        </footer>
+    </main>
+
+    <!-- Harici JS Dosyası Bağlantısı -->
+    <script src="script.js"></script>
+</body>
+</html>
